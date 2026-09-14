@@ -13,6 +13,7 @@ public interface EventMapper {
 
     Event toEvent(EventCreateRequest eventCreateRequest);
 
+    @Mapping(source = "organizer.id", target = "organizerId")
     EventResponse toEventResponse(Event event);
 
     List<EventResponse> toEventResponseList(List<Event> events);

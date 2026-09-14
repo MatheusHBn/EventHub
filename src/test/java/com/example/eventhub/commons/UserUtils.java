@@ -2,7 +2,6 @@ package com.example.eventhub.commons;
 
 import com.example.eventhub.domain.Role;
 import com.example.eventhub.domain.User;
-import com.example.eventhub.dto.user.UserRegisterRequest;
 import com.example.eventhub.dto.user.UserResponse;
 import org.springframework.stereotype.Component;
 
@@ -13,7 +12,7 @@ import java.util.List;
 @Component
 public class UserUtils {
 
-    public List<User> newUserList(){
+    public List<User> newUserList() {
         var user1 = User.builder().id(1L).name("Matheus").email("testeMatheus123@gmail.com").createdAt(LocalDateTime.now())
                 .password("matheus-teste").role(Role.USER).build();
         var user2 = User.builder().id(2L).name("Joana").email("testeJoana123@gmail.com").createdAt(LocalDateTime.now().plusSeconds(20))
@@ -34,11 +33,7 @@ public class UserUtils {
                 .password("marcos-teste").role(Role.USER).build();
     }
 
-    public UserRegisterRequest createUserRequest(){
-        return UserRegisterRequest.builder().name("Matheus").email("matheushbn@gmail.com").password("123456").build();
-    }
-
-    public UserResponse createUserResponse(){
+    public UserResponse createUserResponse() {
         return UserResponse.builder().id(1L).name("Matheus").email("matheus@email.com").role(Role.USER).build();
     }
 }

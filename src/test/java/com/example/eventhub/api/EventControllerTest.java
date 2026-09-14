@@ -3,29 +3,32 @@ package com.example.eventhub.api;
 import com.example.eventhub.commons.EventUtils;
 import com.example.eventhub.commons.FileUtils;
 import com.example.eventhub.commons.UserUtils;
+import com.example.eventhub.config.SecurityConfig;
 import com.example.eventhub.domain.Event;
 import com.example.eventhub.domain.EventStatus;
 import com.example.eventhub.domain.User;
+import com.example.eventhub.dto.event.EventCreateRequest;
 import com.example.eventhub.dto.event.EventResponse;
 import com.example.eventhub.dto.event.EventUpdateRequest;
+import com.example.eventhub.exception.GlobalErrorHandler;
 import com.example.eventhub.exception.NotFoundException;
 import com.example.eventhub.mapper.EventMapper;
+import com.example.eventhub.security.CustomAccessDeniedHandler;
+import com.example.eventhub.security.CustomAuthenticationEntryPoint;
+import com.example.eventhub.security.CustomUserDetailsService;
+import com.example.eventhub.security.JwtService;
 import com.example.eventhub.service.EventService;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.MethodOrderer;
-import org.junit.jupiter.api.Order;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestMethodOrder;
+import com.example.eventhub.service.UserService;
+import org.junit.jupiter.api.*;
 import org.skyscreamer.jsonassert.Customization;
 import org.skyscreamer.jsonassert.JSONAssert;
 import org.skyscreamer.jsonassert.JSONCompareMode;
 import org.skyscreamer.jsonassert.comparator.CustomComparator;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureWebMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
-import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.security.core.Authentication;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -35,16 +38,21 @@ import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(EventController.class)
-@ComponentScan(basePackages = {"com.Matheus.AuthBank"})
-@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-@Import(FileUtils.class)
-@AutoConfigureWebMvc
+@Import({
+        SecurityConfig.class,
+        CustomAuthenticationEntryPoint.class,
+        CustomAccessDeniedHandler.class,
+        GlobalErrorHandler.class,
+        FileUtils.class
+})
 @ActiveProfiles("test")
+@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class EventControllerTest {
 
     @Autowired
@@ -55,6 +63,15 @@ class EventControllerTest {
 
     @MockitoBean
     private EventMapper mapper;
+
+    @MockitoBean
+    private UserService userService;
+
+    @MockitoBean
+    private JwtService jwtService;
+
+    @MockitoBean
+    private CustomUserDetailsService userDetailsService;
 
     @Autowired
     private FileUtils fileUtils;
@@ -67,10 +84,14 @@ class EventControllerTest {
     @DisplayName("Should return 201 Created and response body when event is created successfully")
     void createEvent_returnsCreated_WhenSuccessful() throws Exception {
         User user = userUtils.createSavedUser();
+
+        when(userService.findByEmailOrThrow(user.getEmail())).thenReturn(user);
+
         Event event = eventUtils.createEvent(user);
 
         EventResponse eventResponse = eventUtils.createEventResponse();
 
+        when(mapper.toEvent(any(EventCreateRequest.class))).thenReturn(event);
         when(service.createEvent(any())).thenReturn(event);
         when(mapper.toEventResponse(event)).thenReturn(eventResponse);
 
@@ -78,6 +99,7 @@ class EventControllerTest {
         var response = fileUtils.readResourceFile("event/event-response-200.json");
 
         String responseJson = mockMvc.perform(post("/api/v1/events")
+                        .with(user("organizer@email.com").roles("ORGANIZER"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(request)).andExpect(status().isCreated())
                 .andReturn().getResponse().getContentAsString();
@@ -98,8 +120,9 @@ class EventControllerTest {
         var request = fileUtils.readResourceFile("event/event-request-400.json");
 
         mockMvc.perform(post("/api/v1/events")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(request)).andExpect(status().isBadRequest());
+                .with(user("organizer@email.com").roles("ORGANIZER"))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(request)).andExpect(status().isBadRequest());
 
         verifyNoInteractions(service);
     }
@@ -181,14 +204,16 @@ class EventControllerTest {
         var request = fileUtils.readResourceFile("event/event-request-200.json");
         var response = fileUtils.readResourceFile("event/event-response-update-200.json");
 
-        when(service.updateEvent(eq(event.getId()), any(EventUpdateRequest.class))).thenReturn(event);
+        when(service.updateEvent(eq(event.getId()), any(EventUpdateRequest.class), any(Authentication.class))).thenReturn(event);
 
 
         when(mapper.toEventResponse(event)).thenReturn(updatedEventResponse);
 
-        String actualJsonResponse = mockMvc.perform(put("/api/v1/events/{id}", event.getId())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(request)).andExpect(status().isOk())
+        String actualJsonResponse = mockMvc.perform(
+                        put("/api/v1/events/{id}", event.getId())
+                                .with(user(user.getEmail()).roles("ORGANIZER"))
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(request)).andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
 
         JSONAssert.assertEquals(response, actualJsonResponse,
@@ -197,7 +222,7 @@ class EventControllerTest {
                         new Customization("createdAt", (_, _) -> true)
                 ));
 
-        verify(service).updateEvent(eq(event.getId()), any(EventUpdateRequest.class));
+        verify(service).updateEvent(eq(event.getId()), any(EventUpdateRequest.class), any(Authentication.class));
     }
 
     @Test
@@ -207,7 +232,9 @@ class EventControllerTest {
 
         var request = fileUtils.readResourceFile("event/event-request-400.json");
 
-        mockMvc.perform(put("/api/v1/events/1")
+        mockMvc.perform(
+                put("/api/v1/events/{id}", 1L)
+                        .with(user("organizer@email.com").roles("ORGANIZER"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(request)).andExpect(status().isBadRequest());
 
@@ -222,11 +249,14 @@ class EventControllerTest {
         Event event = eventUtils.createSavedEvent(user);
 
         when(service.findByIdOrThrow(1L)).thenReturn(event);
-        doNothing().when(service).deleteEvent(event);
 
-        mockMvc.perform(delete("/api/v1/events/1")).andExpect(status().isNoContent());
+        doNothing().when(service).deleteEvent(eq(event), any(Authentication.class));
+
+        mockMvc.perform(delete("/api/v1/events/1")
+                .with(user(user.getEmail()).roles("ORGANIZER"))).andExpect(status().isNoContent());
 
         verify(service).findByIdOrThrow(1L);
-        verify(service).deleteEvent(event);
+
+        verify(service).deleteEvent(eq(event), any(Authentication.class));
     }
 }
