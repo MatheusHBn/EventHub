@@ -2,15 +2,18 @@ package com.example.eventhub.api;
 
 import com.example.eventhub.commons.FileUtils;
 import com.example.eventhub.commons.UserUtils;
+import com.example.eventhub.config.SecurityConfig;
 import com.example.eventhub.dto.user.UserRegisterRequest;
+import com.example.eventhub.exception.GlobalErrorHandler;
 import com.example.eventhub.mapper.UserMapper;
+import com.example.eventhub.security.CustomAccessDeniedHandler;
+import com.example.eventhub.security.CustomAuthenticationEntryPoint;
+import com.example.eventhub.security.CustomUserDetailsService;
+import com.example.eventhub.security.JwtService;
 import com.example.eventhub.service.UserService;
-
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureWebMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
-import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -18,13 +21,19 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(UserController.class)
-@ComponentScan(basePackages = {"com.Matheus.AuthBank"})
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-@Import({FileUtils.class, UserUtils.class})
-@AutoConfigureWebMvc
+@Import({
+        FileUtils.class,
+        UserUtils.class,
+        SecurityConfig.class,
+        CustomAuthenticationEntryPoint.class,
+        CustomAccessDeniedHandler.class,
+        GlobalErrorHandler.class
+})
 @ActiveProfiles("test")
 class UserControllerTest {
     @Autowired
@@ -40,6 +49,12 @@ class UserControllerTest {
     private UserUtils userUtils;
     @Autowired
     private FileUtils fileUtils;
+
+    @MockitoBean
+    private JwtService jwtService;
+
+    @MockitoBean
+    private CustomUserDetailsService userDetailsService;
 
     @Test
     @Order(1)

@@ -1,11 +1,12 @@
 package com.example.eventhub.service;
 
 import com.example.eventhub.domain.*;
-import com.example.eventhub.exception.NotFoundException;
+import com.example.eventhub.exception.*;
 import com.example.eventhub.repository.RegistrationRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -21,20 +22,21 @@ public class RegistrationService {
         Event event = eventService.findByIdOrThrow(eventId);
 
         if (repository.existsByUser_IdAndEvent_Id(userId, eventId)) {
-            throw new IllegalArgumentException("User already registered");
+            throw new AlreadyRegisteredException("User already registered");
         }
 
-        if (event.getStatus() != EventStatus.PUBLISHED){
-            throw new IllegalArgumentException("Event is not available for registration");
+        if (event.getStatus() != EventStatus.PUBLISHED) {
+            throw new EventIsNotPublishedException("Event is not available for registration");
         }
 
         long registrations = repository.countByEventIdAndStatus(eventId, RegistrationStatus.ACTIVE);
 
         if (registrations >= event.getCapacity()) {
-            throw new IllegalArgumentException("Event is full");
+            throw new EventFullException("Event is full");
         }
 
-        Registration registration = Registration.builder().user(user).event(event).status(RegistrationStatus.ACTIVE).build();
+        Registration registration = Registration.builder().user(user).event(event).status(RegistrationStatus.ACTIVE)
+                .registeredAt(LocalDateTime.now()).build();
 
         return repository.save(registration);
     }
@@ -52,8 +54,8 @@ public class RegistrationService {
         var registration = repository.findByUserIdAndEventId(userId, eventId).orElseThrow(
                 () -> new NotFoundException("Registration not found"));
 
-        if (registration.getStatus() == RegistrationStatus.CANCELED){
-            throw new IllegalArgumentException("This registration already canceled");
+        if (registration.getStatus() == RegistrationStatus.CANCELED) {
+            throw new AlreadyCanceledException("This registration already canceled");
         }
 
         registration.setStatus(RegistrationStatus.CANCELED);

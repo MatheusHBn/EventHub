@@ -10,3 +10,7 @@ spring:
     hibernate:
       ddl-auto: create-drop
     show-sql: true
+
+jwt:
+  secret: test-secret-key-that-is-long-enough-for-hs256-123456789
+  expiration: 3600000

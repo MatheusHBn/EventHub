@@ -6,10 +6,8 @@ import com.example.eventhub.commons.UserUtils;
 import com.example.eventhub.domain.EventStatus;
 import com.example.eventhub.domain.Registration;
 import com.example.eventhub.domain.RegistrationStatus;
-import com.example.eventhub.exception.NotFoundException;
-import com.example.eventhub.repository.EventRepository;
+import com.example.eventhub.exception.*;
 import com.example.eventhub.repository.RegistrationRepository;
-import com.example.eventhub.repository.UserRepository;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -17,12 +15,11 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.context.ActiveProfiles;
 
-import java.util.List;
 import java.util.Optional;
 
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.*;
-import static org.mockito.BDDMockito.*;
 
 @ExtendWith(MockitoExtension.class)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
@@ -43,7 +40,7 @@ class RegistrationServiceTest {
     private EventUtils eventUtils;
 
     @BeforeEach
-    void setUp(){
+    void setUp() {
         registrationUtils = new RegistrationUtils();
         eventUtils = new EventUtils();
         userUtils = new UserUtils();
@@ -52,7 +49,7 @@ class RegistrationServiceTest {
     @Test
     @Order(1)
     @DisplayName("Should successfully register user to event and set registration status to ACTIVE")
-    void register_registerUser_WhenSuccessful(){
+    void register_registerUser_WhenSuccessful() {
         var user = userUtils.createSavedUser();
         var event = eventUtils.createSavedEvent(user);
         var registration = registrationUtils.createRegistration(user, event);
@@ -76,7 +73,7 @@ class RegistrationServiceTest {
     @Test
     @Order(2)
     @DisplayName("Should throw NotFoundException when registering with a non-existing user ID")
-    void findByUserId_throwsNotFoundException_WhenUserIdDoesNotExists(){
+    void findByUserId_throwsNotFoundException_WhenUserIdDoesNotExists() {
         var user = userUtils.createUser();
         var eventId = 1L;
 
@@ -93,7 +90,7 @@ class RegistrationServiceTest {
     @Test
     @Order(3)
     @DisplayName("Should throw NotFoundException when registering for a non-existing event ID")
-    void findByEventId_throwsNotFoundException_WhenEventIdDoesNotExists(){
+    void findByEventId_throwsNotFoundException_WhenEventIdDoesNotExists() {
         var user = userUtils.createSavedUser();
         var event = eventUtils.createSavedEvent(user);
 
@@ -109,8 +106,8 @@ class RegistrationServiceTest {
 
     @Test
     @Order(4)
-    @DisplayName("Should throw IllegalArgumentException when user is already registered for the event")
-    void existsByUserIdAndEventId_ThrowsIllegalArgumentException_WhenSuccessful(){
+    @DisplayName("Should throw AlreadyRegisteredException when user is already registered for the event")
+    void existsByUserIdAndEventId_ThrowsAlreadyRegisteredException_WhenSuccessful() {
         var user = userUtils.createSavedUser();
         var event = eventUtils.createSavedEvent(user);
 
@@ -119,13 +116,13 @@ class RegistrationServiceTest {
 
         when(repository.existsByUser_IdAndEvent_Id(user.getId(), event.getId())).thenReturn(true);
 
-        assertThatThrownBy(() -> service.registerUser(user.getId(), event.getId())).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> service.registerUser(user.getId(), event.getId())).isInstanceOf(AlreadyRegisteredException.class);
     }
 
     @Test
     @Order(5)
-    @DisplayName("Should throw IllegalArgumentException when attempting to register for an unpublished event")
-    void registerUser_ThrowsIllegalArgumentException_WhenEventIsNotPublished(){
+    @DisplayName("Should throw EventIsNotPublishedException when attempting to register for an unpublished event")
+    void registerUser_ThrowsEventIsNotPublishedException_WhenEventIsNotPublished() {
         var user = userUtils.createSavedUser();
         var event = eventUtils.createSavedEvent(user);
         event.setStatus(EventStatus.DRAFT);
@@ -133,13 +130,13 @@ class RegistrationServiceTest {
         when(userService.findByIdOrThrow(user.getId())).thenReturn(user);
         when(eventService.findByIdOrThrow(event.getId())).thenReturn(event);
 
-        assertThatThrownBy(() -> service.registerUser(user.getId(), event.getId())).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> service.registerUser(user.getId(), event.getId())).isInstanceOf(EventIsNotPublishedException.class);
     }
 
     @Test
     @Order(6)
-    @DisplayName("Should throw IllegalArgumentException when event capacity is full")
-    void registerUser_ThrowsIllegalArgumentException_WhenEventsCapacityIsFully(){
+    @DisplayName("Should throw EventFullException when event capacity is full")
+    void registerUser_ThrowsEventFullException_WhenEventsCapacityIsFully() {
         var user = userUtils.createSavedUser();
         var event = eventUtils.createSavedEvent(user);
         event.setCapacity(19);
@@ -148,13 +145,13 @@ class RegistrationServiceTest {
         when(eventService.findByIdOrThrow(event.getId())).thenReturn(event);
         when(repository.countByEventIdAndStatus(event.getId(), RegistrationStatus.ACTIVE)).thenReturn(20L);
 
-        assertThatThrownBy(() -> service.registerUser(user.getId(), event.getId())).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> service.registerUser(user.getId(), event.getId())).isInstanceOf(EventFullException.class);
     }
 
     @Test
     @Order(7)
     @DisplayName("Should save registration successfully when event has available capacity")
-    void registerUser_SavesRegistration_WhenHasCapacity(){
+    void registerUser_SavesRegistration_WhenHasCapacity() {
         var user = userUtils.createSavedUser();
         var event = eventUtils.createSavedEvent(user);
         var registration = registrationUtils.createRegistration(user, event);
@@ -180,7 +177,7 @@ class RegistrationServiceTest {
     @Test
     @Order(8)
     @DisplayName("Should return all registrations associated with a specific event ID")
-    void findByEventId_findAllRegistrationsByEventId_WhenSuccessful(){
+    void findByEventId_findAllRegistrationsByEventId_WhenSuccessful() {
         var user = userUtils.createSavedUser();
         var user2 = userUtils.createSavedUser();
         var event1 = eventUtils.createSavedEvent(user);
@@ -197,7 +194,7 @@ class RegistrationServiceTest {
     @Test
     @Order(9)
     @DisplayName("Should cancel registration successfully by updating status to CANCELED")
-    void cancelEvent_cancelEvent_WhenSuccessful(){
+    void cancelEvent_cancelEvent_WhenSuccessful() {
         var user = userUtils.createSavedUser();
         var event = eventUtils.createSavedEvent(user);
         var registration = registrationUtils.createSavedRegistration(user, event);
@@ -214,7 +211,7 @@ class RegistrationServiceTest {
     @Test
     @Order(10)
     @DisplayName("Should throw NotFoundException when attempting to cancel a non-existing registration")
-    void cancelEvent_throwsNotFoundException_WhenEventIsNotFound(){
+    void cancelEvent_throwsNotFoundException_WhenEventIsNotFound() {
         var user = userUtils.createSavedUser();
         var event = eventUtils.createSavedEvent(user);
         var registration = registrationUtils.createSavedRegistration(user, event);
@@ -228,8 +225,8 @@ class RegistrationServiceTest {
 
     @Test
     @Order(11)
-    @DisplayName("Should throw IllegalArgumentException when attempting to cancel an already canceled registration")
-    void cancelEvent_throwsIllegalArgumentException_WhenRegistrationAlreadyCanceled(){
+    @DisplayName("Should throw AlreadyCanceledException when attempting to cancel an already canceled registration")
+    void cancelEvent_throwsAlreadyCanceledException_WhenRegistrationAlreadyCanceled() {
         var user = userUtils.createSavedUser();
         var event = eventUtils.createSavedEvent(user);
         var registration = registrationUtils.createSavedRegistration(user, event);
@@ -238,7 +235,7 @@ class RegistrationServiceTest {
         when(repository.findByUserIdAndEventId(user.getId(), event.getId())).thenReturn(Optional.of(registration));
 
         assertThatThrownBy(() -> service.cancelRegistration(user.getId(), event.getId()))
-                .isInstanceOf(IllegalArgumentException.class).hasMessage("This registration already canceled");
+                .isInstanceOf(AlreadyCanceledException.class).hasMessageContaining("This registration already canceled");
 
         verify(repository, times(0)).save(registration);
     }

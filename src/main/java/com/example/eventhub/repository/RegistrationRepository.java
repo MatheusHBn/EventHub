@@ -11,7 +11,7 @@ import java.util.Optional;
 
 @Repository
 public interface RegistrationRepository extends JpaRepository<Registration, Long> {
-    
+
     boolean existsByUser_IdAndEvent_Id(Long userId, Long eventId);
 
     long countByEventIdAndStatus(Long eventId, RegistrationStatus status);
@@ -23,4 +23,6 @@ public interface RegistrationRepository extends JpaRepository<Registration, Long
     List<Registration> findByUserId(Long userId);
 
     Optional<Registration> findByUserIdAndEventId(Long userId, Long eventId);
+
+
 }
