@@ -1,5 +1,4 @@
 services:
-
   postgres:
     image: postgres:17
     container_name: eventhub-postgres
@@ -7,14 +6,32 @@ services:
 
     environment:
       POSTGRES_DB: eventhub
-      POSTGRES_USER: eventhub
-      POSTGRES_PASSWORD: eventhub123
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
 
     ports:
       - "5432:5432"
 
     volumes:
       - eventhub_postgres_data:/var/lib/postgresql/data
+
+  eventhub:
+    build: .
+    container_name: eventhub-app
+    restart: unless-stopped
+
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/eventhub
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRATION: ${JWT_EXPIRATION}
+
+    ports:
+      - "8080:8080"
+
+    depends_on:
+      - postgres
 
 volumes:
   eventhub_postgres_data:
