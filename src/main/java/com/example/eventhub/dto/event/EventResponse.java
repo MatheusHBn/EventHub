@@ -25,6 +25,8 @@ public record EventResponse(
         @Schema(description = "Date and time when the event was created", example = "2026-09-14T12:30:00")
         LocalDateTime createdAt,
         @Schema(description = "Unique identifier of the event organizer", example = "5")
-        Long organizerId
+        Long organizerId,
+        @Schema(description = "Temporary pre-signed URL to access the event image. Valid for 15 minutes.", example = "https://example.com/events/22/image?presigned")
+        String imageUrl
 ) {
 }

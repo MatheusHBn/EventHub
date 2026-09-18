@@ -2,8 +2,10 @@ package com.example.eventhub.service;
 
 import com.example.eventhub.domain.Event;
 import com.example.eventhub.domain.EventStatus;
+import com.example.eventhub.dto.event.EventResponse;
 import com.example.eventhub.dto.event.EventUpdateRequest;
 import com.example.eventhub.exception.NotFoundException;
+import com.example.eventhub.mapper.EventMapper;
 import com.example.eventhub.repository.EventRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
@@ -19,6 +21,8 @@ import java.util.Objects;
 public class EventService {
 
     private final EventRepository repository;
+    private final S3Service s3Service;
+    private final EventMapper mapper;
 
     public Event createEvent(Event event) {
         event.setStatus(EventStatus.DRAFT);
@@ -43,6 +47,10 @@ public class EventService {
         return repository.findAll();
     }
 
+    public List<EventResponse> findAllResponse() {
+        return repository.findAll().stream().map(this::toEventResponse).toList();
+    }
+
     public Event findByIdOrThrow(Long id) {
         return repository.findById(id).orElseThrow(() -> new NotFoundException("This id not found"));
     }
@@ -63,15 +71,14 @@ public class EventService {
 
     public void deleteEvent(Event event, Authentication authentication) {
         validateOwnership(event, authentication);
-
         event.setStatus(EventStatus.CANCELED);
 
         repository.save(event);
     }
 
     private void validateOwnership(Event event, Authentication authentication) {
-        boolean isAdmin = authentication.getAuthorities().stream()
-                .anyMatch(authority -> Objects.requireNonNull(authority.getAuthority()).equals("ROLE_ADMIN"));
+        boolean isAdmin = authentication.getAuthorities().stream().anyMatch(
+                authority -> Objects.requireNonNull(authority.getAuthority()).equals("ROLE_ADMIN"));
 
         if (isAdmin) {
             return;
@@ -82,5 +89,30 @@ public class EventService {
         if (!event.getOrganizer().getEmail().equals(email)) {
             throw new AccessDeniedException("You are not the owner of this event");
         }
+    }
+
+    public Event updateImageUrl(Event event) {
+        return repository.save(event);
+    }
+
+    public EventResponse toEventResponse(Event event) {
+        var response = mapper.toEventResponse(event);
+
+        if (event.getImageUrl() == null) {
+            return response;
+        }
+
+        return EventResponse.builder()
+                .id(response.id())
+                .title(response.title())
+                .description(response.description())
+                .date(response.date())
+                .location(response.location())
+                .capacity(response.capacity())
+                .status(response.status())
+                .createdAt(response.createdAt())
+                .organizerId(response.organizerId())
+                .imageUrl(s3Service.generatePresignedUrl(event.getImageUrl()))
+                .build();
     }
 }

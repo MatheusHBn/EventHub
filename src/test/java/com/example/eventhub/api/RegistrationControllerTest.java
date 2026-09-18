@@ -70,8 +70,7 @@ class RegistrationControllerTest {
     @Order(1)
     @DisplayName("POST /events/{id}/registrations Should return 401 Unauthorized when not authenticated")
     void register_returns401_WhenUnauthenticated() throws Exception {
-        mockMvc.perform(post("/api/v1/events/1/registrations"))
-                .andExpect(status().isUnauthorized());
+        mockMvc.perform(post("/api/v1/events/1/registrations")).andExpect(status().isUnauthorized());
 
         verifyNoInteractions(service);
     }
@@ -80,9 +79,9 @@ class RegistrationControllerTest {
     @Order(2)
     @DisplayName("POST /events/{id}/registrations Should return 201 Created for USER role")
     void register_returns201_WhenUserIsRoleUser() throws Exception {
-        User user = userUtils.createSavedUser();
-        Event event = eventUtils.createSavedEvent(user);
-        Registration registration = registrationUtils.createSavedRegistration(user, event);
+        var user = userUtils.createSavedUser();
+        var event = eventUtils.createSavedEvent(user);
+        var registration = registrationUtils.createSavedRegistration(user, event);
         var response = registrationUtils.createRegistrationResponse(user.getId(), event.getId());
 
         when(userService.findByEmailOrThrow(user.getEmail())).thenReturn(user);
@@ -102,8 +101,8 @@ class RegistrationControllerTest {
     @Order(3)
     @DisplayName("GET /events/{id}/registrations Should return 200 OK for authenticated user")
     void findByEvent_returns200_WhenAuthenticated() throws Exception {
-        List<Registration> registrations = List.of(new Registration());
-        List<RegistrationResponse> responses = List.of(RegistrationResponse.builder().id(1L).userId(1L).eventId(1L).build());
+        var registrations = List.of(new Registration());
+        var responses = List.of(RegistrationResponse.builder().id(1L).userId(1L).eventId(1L).build());
 
         when(service.findByEvent(1L)).thenReturn(registrations);
         when(mapper.toRegistrationResponseList(registrations)).thenReturn(responses);
@@ -118,9 +117,9 @@ class RegistrationControllerTest {
     @Order(4)
     @DisplayName("GET /events/{id}/registrations Should return 200 OK for ORGANIZER role")
     void findByEvent_returns200_WhenUserIsOrganizer() throws Exception {
-        User user = userUtils.createSavedUser();
-        Event event = eventUtils.createSavedEvent(user);
-        Registration registration = registrationUtils.createSavedRegistration(user, event);
+        var user = userUtils.createSavedUser();
+        var event = eventUtils.createSavedEvent(user);
+        var registration = registrationUtils.createSavedRegistration(user, event);
 
         var registrations = List.of(registration);
         var response = registrationUtils.createRegistrationResponse(user.getId(), event.getId());
@@ -141,8 +140,7 @@ class RegistrationControllerTest {
     @Order(5)
     @DisplayName("DELETE /events/{id}/registrations Should return 401 Unauthorized when not authenticated")
     void cancelRegistration_returns401_WhenUnauthenticated() throws Exception {
-        mockMvc.perform(delete("/api/v1/events/1/registrations"))
-                .andExpect(status().isUnauthorized());
+        mockMvc.perform(delete("/api/v1/events/1/registrations")).andExpect(status().isUnauthorized());
 
         verifyNoInteractions(service);
     }
@@ -151,7 +149,7 @@ class RegistrationControllerTest {
     @Order(6)
     @DisplayName("DELETE /events/{eventId}/registrations Should return 204 No Content for authenticated user")
     void cancelRegistration_returns204_WhenUserIsRoleUser() throws Exception {
-        User user = userUtils.createSavedUser();
+        var user = userUtils.createSavedUser();
 
         when(userService.findByEmailOrThrow(user.getEmail())).thenReturn(user);
         doNothing().when(service).cancelRegistration(user.getId(), 1L);

@@ -1,12 +1,16 @@
 package com.example.eventhub.service;
 
 import com.example.eventhub.commons.EventUtils;
+import com.example.eventhub.commons.FileUtils;
 import com.example.eventhub.commons.UserUtils;
 import com.example.eventhub.domain.Event;
 import com.example.eventhub.domain.EventStatus;
 import com.example.eventhub.domain.Role;
+import com.example.eventhub.domain.User;
+import com.example.eventhub.dto.event.EventResponse;
 import com.example.eventhub.dto.event.EventUpdateRequest;
 import com.example.eventhub.exception.NotFoundException;
+import com.example.eventhub.mapper.EventMapper;
 import com.example.eventhub.repository.EventRepository;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -26,6 +30,8 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.*;
 
@@ -42,6 +48,10 @@ class EventServiceTest {
     private Authentication authentication;
     @Mock
     private SecurityContext securityContext;
+    @Mock
+    private S3Service s3Service;
+    @Mock
+    private EventMapper mapper;
     private UserUtils userUtils;
     private EventUtils eventUtils;
 
@@ -210,7 +220,6 @@ class EventServiceTest {
         event.setStatus(EventStatus.DRAFT);
 
         when(authentication.getName()).thenReturn(user.getEmail());
-
         when(repository.findById(event.getId())).thenReturn(Optional.of(event));
         when(repository.save(any(Event.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -274,7 +283,6 @@ class EventServiceTest {
         event.setStatus(EventStatus.PUBLISHED);
 
         when(authentication.getName()).thenReturn(user.getEmail());
-
         when(repository.findById(event.getId())).thenReturn(Optional.of(event));
 
         assertThatThrownBy(() -> service.publishEvent(event.getId(), authentication))
@@ -302,5 +310,63 @@ class EventServiceTest {
 
         verify(repository).findById(event.getId());
         verify(repository, never()).save(any());
+    }
+
+    @Test
+    @Order(13)
+    @DisplayName("Should generate presigned URL when event has an image")
+    void toEventResponse_generatesUrl_WhenEventHasImage() {
+        Event event = eventUtils.createEvent(userUtils.createUser());
+        event.setImageUrl(null);
+        EventResponse response = eventUtils.createEventResponse();
+
+        when(mapper.toEventResponse(event)).thenReturn(response);
+
+        EventResponse result = service.toEventResponse(event);
+
+        assertEquals(response, result);
+
+        verify(s3Service, never()).generatePresignedUrl(any());
+    }
+
+    @Test
+    @Order(14)
+    @DisplayName("Should generate presigned URLs only for events with images")
+    void findAllResponse_generatesUrls_OnlyForEventsWithImages() {
+        User user = userUtils.createUser();
+        Event eventWithImage = eventUtils.createEvent(user);
+        eventWithImage.setId(1L);
+        eventWithImage.setImageUrl("events/1/image");
+
+        Event eventWithoutImage = eventUtils.createEvent(user);
+        eventWithoutImage.setId(2L);
+        eventWithoutImage.setImageUrl(null);
+
+        EventResponse responseWithImage = eventUtils.createEventResponse();
+        EventResponse responseWithoutImage = EventResponse.builder()
+                .id(2L)
+                .title("Evento sem imagem")
+                .description("Uma descrição")
+                .date(LocalDateTime.now().plusDays(10))
+                .location("São Paulo")
+                .capacity(100)
+                .status(EventStatus.PUBLISHED)
+                .createdAt(LocalDateTime.now())
+                .organizerId(user.getId())
+                .build();
+
+        when(repository.findAll()).thenReturn(List.of(eventWithImage, eventWithoutImage));
+        when(mapper.toEventResponse(eventWithImage)).thenReturn(responseWithImage);
+        when(mapper.toEventResponse(eventWithoutImage)).thenReturn(responseWithoutImage);
+        when(s3Service.generatePresignedUrl("events/1/image")).thenReturn("https://fake-url.com/events/1/image");
+
+        var result = service.findAllResponse();
+
+        assertEquals(2, result.size());
+        assertEquals("https://fake-url.com/events/1/image", result.get(0).imageUrl());
+        assertNull(result.get(1).imageUrl());
+
+        verify(s3Service).generatePresignedUrl("events/1/image");
+        verify(s3Service, times(1)).generatePresignedUrl(any());
     }
 }

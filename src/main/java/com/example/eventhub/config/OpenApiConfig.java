@@ -19,7 +19,7 @@ public class OpenApiConfig {
                 .info(new Info()
                         .title("EventHub API")
                         .description("API for event and registration management")
-                        .version("v1.1.0"))
+                        .version("v1.2.0"))
                 .addSecurityItem(new SecurityRequirement().addList(securitySchemeName))
                 .components(new Components()
                         .addSecuritySchemes(securitySchemeName,

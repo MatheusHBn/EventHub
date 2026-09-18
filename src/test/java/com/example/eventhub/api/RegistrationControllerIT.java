@@ -2,6 +2,7 @@ package com.example.eventhub.api;
 
 import com.example.eventhub.commons.EventUtils;
 import io.restassured.RestAssured;
+import io.restassured.http.ContentType;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -51,8 +52,7 @@ class RegistrationControllerIT {
     @Order(2)
     @DisplayName("POST /api/v1/events/{id}/registrations Should return 401 Unauthorized when request is unauthenticated")
     void create_returns401_WhenUnauthenticated() {
-        given().when().post("/api/v1/events/1/registrations")
-                .then().statusCode(401);
+        given().when().post("/api/v1/events/1/registrations").then().statusCode(401);
     }
 
     @Test
@@ -152,8 +152,7 @@ class RegistrationControllerIT {
     @Order(8)
     @DisplayName("GET /api/v1/users/me/registrations Should return 401 Unauthorized when request is unauthenticated")
     void findMyRegistrations_returns401_WhenUnauthenticated() {
-        given().when().get("/api/v1/users/me/registrations")
-                .then().statusCode(401);
+        given().when().get("/api/v1/users/me/registrations").then().statusCode(401);
     }
 
     @Test

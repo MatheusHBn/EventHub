@@ -19,3 +19,7 @@ spring:
 jwt:
   secret: ${JWT_SECRET}
   expiration: ${JWT_EXPIRATION}
+
+aws:
+  s3:
+    bucket-name: eventhub-storage-174302433598

@@ -79,22 +79,24 @@ public class RegistrationController {
             description = "Returns all registrations made for a specific event. Requires \"ORGANIZER\" or \"ADMIN\" role")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Registration successfully created"),
-            @ApiResponse(responseCode = "401", description = "Authentication required", content = @Content(
+            @ApiResponse(responseCode = "401", description = "Authentication required",
+                    content = @Content(
                     mediaType = "application/json", schema = @Schema(implementation = DefaultErrorMessage.class),
                     examples = @ExampleObject(value = "{\"status\": 401, \"message\": \"Unauthorized\"}"))),
-            @ApiResponse(responseCode = "403", description = "User does not have permission to view event registrations", content = @Content(
+            @ApiResponse(responseCode = "403", description = "User does not have permission to view event registrations",
+                    content = @Content(
                     mediaType = "application/json", schema = @Schema(implementation = DefaultErrorMessage.class),
                     examples = @ExampleObject(value = "{\"status\": 403, \"message\": \"You don't have authorization\"}"))),
-            @ApiResponse(responseCode = "404", description = "Event not found", content = @Content(
+            @ApiResponse(responseCode = "404", description = "Event not found",
+                    content = @Content(
                     mediaType = "application/json", schema = @Schema(implementation = DefaultErrorMessage.class),
                     examples = @ExampleObject(value = "{\"status\": 404, \"message\": \"Event not found\"}"))),
 
     })
     @GetMapping("/events/{eventId}/registrations")
     public ResponseEntity<List<RegistrationResponse>> getRegistrationByEvent(@PathVariable Long eventId) {
-        List<Registration> registrations = service.findByEvent(eventId);
-
-        List<RegistrationResponse> response = mapper.toRegistrationResponseList(registrations);
+        var registrations = service.findByEvent(eventId);
+        var response = mapper.toRegistrationResponseList(registrations);
 
         return ResponseEntity.ok(response);
     }

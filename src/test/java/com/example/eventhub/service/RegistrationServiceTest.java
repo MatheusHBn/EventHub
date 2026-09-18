@@ -56,7 +56,6 @@ class RegistrationServiceTest {
 
         when(userService.findByIdOrThrow(user.getId())).thenReturn(user);
         when(eventService.findByIdOrThrow(event.getId())).thenReturn(event);
-
         when(repository.save(any(Registration.class))).thenReturn(registration);
 
         var result = service.registerUser(user.getId(), event.getId());
@@ -113,7 +112,6 @@ class RegistrationServiceTest {
 
         when(userService.findByIdOrThrow(user.getId())).thenReturn(user);
         when(eventService.findByIdOrThrow(event.getId())).thenReturn(event);
-
         when(repository.existsByUser_IdAndEvent_Id(user.getId(), event.getId())).thenReturn(true);
 
         assertThatThrownBy(() -> service.registerUser(user.getId(), event.getId())).isInstanceOf(AlreadyRegisteredException.class);

@@ -56,8 +56,7 @@ class AuthControllerIT {
 
         var loginRequest = fileUtils.readResourceFile("auth/login-request-200.json");
 
-        given()
-                .contentType(ContentType.JSON)
+        given().contentType(ContentType.JSON)
                 .body(loginRequest).when()
                 .post("/api/v1/auth/login")
                 .then().statusCode(200)
@@ -76,8 +75,7 @@ class AuthControllerIT {
 
         var invalidLogin = fileUtils.readResourceFile("auth/login-request-400.json");
 
-        given()
-                .contentType(ContentType.JSON)
+        given().contentType(ContentType.JSON)
                 .body(invalidLogin).when()
                 .post("/api/v1/auth/login")
                 .then()
@@ -108,8 +106,7 @@ class AuthControllerIT {
     void register_returns400_WhenDataIsInvalid() throws Exception {
         var request = fileUtils.readResourceFile("auth/auth-request-invalid-fields-400.json");
 
-        given()
-                .contentType(ContentType.JSON)
+        given().contentType(ContentType.JSON)
                 .body(request).when()
                 .post("/api/v1/auth/register")
                 .then().statusCode(400);

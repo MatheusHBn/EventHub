@@ -55,8 +55,7 @@ class RegistrationControllerContainerTest {
     @Order(2)
     @DisplayName("POST /api/v1/events/{id}/registrations Should return 401 Unauthorized when request is unauthenticated")
     void create_returns401_WhenUnauthenticated() {
-        given().when().post("/api/v1/events/1/registrations")
-                .then().statusCode(401);
+        given().when().post("/api/v1/events/1/registrations").then().statusCode(401);
     }
 
     @Test
@@ -156,8 +155,7 @@ class RegistrationControllerContainerTest {
     @Order(8)
     @DisplayName("GET /api/v1/users/me/registrations Should return 401 Unauthorized when request is unauthenticated")
     void findMyRegistrations_returns401_WhenUnauthenticated() {
-        given().when().get("/api/v1/users/me/registrations")
-                .then().statusCode(401);
+        given().when().get("/api/v1/users/me/registrations").then().statusCode(401);
     }
 
     @Test

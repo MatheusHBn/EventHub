@@ -42,10 +42,9 @@ public class UserController {
     @PostMapping("/auth/register")
     public ResponseEntity<UserResponse> register(@Valid @RequestBody UserRegisterRequest request) {
         var user = mapper.toUser(request);
-
         var userSaved = service.createUser(user);
-
         var userResponse = mapper.toUserResponse(userSaved);
+
         return ResponseEntity.status(HttpStatus.CREATED).body(userResponse);
     }
 
@@ -62,6 +61,7 @@ public class UserController {
         String email = authentication.getName();
         var user = service.findByEmailOrThrow(email);
         var response = mapper.toUserResponse(user);
+
         return ResponseEntity.ok(response);
     }
 }

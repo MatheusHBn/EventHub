@@ -39,8 +39,7 @@ class UserControllerIT {
         String email = "me@test.com";
         String password = "12345678";
 
-        given()
-                .contentType(ContentType.JSON)
+        given().contentType(ContentType.JSON)
                 .body(request.formatted(email, password)).when()
                 .post("/api/v1/auth/register")
                 .then().statusCode(201);
@@ -54,9 +53,8 @@ class UserControllerIT {
                 .then().statusCode(200)
                 .extract().path("token");
 
-        given()
-                .header("Authorization", "Bearer " + token).when()
-                .get("/api/v1/users/me")
+        given().header("Authorization", "Bearer " + token)
+                .when().get("/api/v1/users/me")
                 .then().statusCode(200)
                 .body("name", equalTo("Matheus"))
                 .body("email", equalTo(email))

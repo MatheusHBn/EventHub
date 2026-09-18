@@ -13,6 +13,4 @@ public interface UserMapper {
     User toUser(UserRegisterRequest userRegisterRequest);
 
     UserResponse toUserResponse(User user);
-
-    List<UserResponse> toUserResponseList(List<User> users);
 }

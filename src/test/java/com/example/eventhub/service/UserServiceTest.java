@@ -43,7 +43,8 @@ class UserServiceTest {
     @Order(1)
     @DisplayName("Should create user successfully with default USER role and set creation date")
     void createUser_createsUser_WhenSuccessful() {
-        var user = User.builder().name("Matheus").email("testeMatheus123@gmail.com").password(passwordEncoder.encode("teste-matheus")).build();
+        var user = User.builder().name("Matheus").email("testeMatheus123@gmail.com")
+                .password(passwordEncoder.encode("teste-matheus")).build();
 
         when(repository.save(user)).thenReturn(user);
 
@@ -88,8 +89,7 @@ class UserServiceTest {
     void assertEmailDoesNotExists_throwsException_WhenEmailAlreadyExists() {
         var user = userUtils.createUser();
 
-        when(repository.findByEmail(user.getEmail()))
-                .thenReturn(Optional.of(user));
+        when(repository.findByEmail(user.getEmail())).thenReturn(Optional.of(user));
 
         assertThatThrownBy(() -> service.assertEmailDoesNotExists(user.getEmail()))
                 .isInstanceOf(EmailAlreadyExistsException.class);

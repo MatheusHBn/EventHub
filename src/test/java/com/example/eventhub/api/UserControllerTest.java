@@ -86,8 +86,7 @@ class UserControllerTest {
     void register_returnsBadRequest_WhenRequestIsInvalid() throws Exception {
         var request = fileUtils.readResourceFile("user/user-request-400.json");
 
-        mockMvc.perform(post("/api/v1/auth/register")
-                        .contentType("application/json").content(request))
+        mockMvc.perform(post("/api/v1/auth/register").contentType("application/json").content(request))
                 .andExpect(status().isBadRequest());
 
         verifyNoInteractions(service);

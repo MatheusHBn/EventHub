@@ -26,10 +26,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthController {
     private final AuthenticationService authenticationService;
 
-    @Operation(
-            summary = "Authenticate user",
-            description = "Authenticates a user using email and password and returns a JWT token"
-    )
+    @Operation(summary = "Authenticate user", description = "Authenticates a user using email and password and returns a JWT token")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Login successful", content = @Content(
                     mediaType = "application/json", schema = @Schema(implementation = LoginResponse.class),

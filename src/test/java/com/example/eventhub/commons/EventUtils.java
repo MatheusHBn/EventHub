@@ -45,10 +45,12 @@ public class EventUtils {
     }
 
     public Long createEvent(String token) throws Exception {
-        var request = fileUtils.readResourceFile("event/event-request-200.json");
+        var request = fileUtils.readResourceFile("event/event-request-200.json").formatted(LocalDateTime.now().plusDays(1));
+        var image = fileUtils.getResourceAsFile("event/event-image/image-test.png");
 
         return given().header("Authorization", "Bearer " + token)
-                .contentType(ContentType.JSON).body(request)
+                .multiPart("event", request, "application/json")
+                .multiPart("image", image, "image/png")
                 .when().post("/api/v1/events")
                 .then().statusCode(201)
                 .extract().jsonPath().getLong("id");
@@ -72,15 +74,19 @@ public class EventUtils {
                 .status(EventStatus.PUBLISHED)
                 .createdAt(LocalDateTime.parse("2026-09-17T14:54:05.6788501"))
                 .organizerId(1L)
+                .imageUrl("events/1/image")
                 .build();
     }
 
     public Long createPublishedEvent(String token) throws Exception {
-
+        var request = fileUtils.readResourceFile("event/event-request-200.json").formatted(LocalDateTime.now().plusDays(1));
+        var image = fileUtils.getResourceAsFile("event/event-image/image-test.png");
         Long eventId = createEvent(token);
 
         given()
                 .header("Authorization", "Bearer " + token)
+                .multiPart("event", request, "application/json")
+                .multiPart("image", image, "image/png")
                 .when()
                 .patch("/api/v1/events/" + eventId + "/publish")
                 .then()
@@ -91,7 +97,6 @@ public class EventUtils {
     }
 
     public String registerAndLogin(String name, String email, String password) throws Exception {
-
         var authRequest = fileUtils.readResourceFile("user/auth-request-model-200.json");
 
         given()
@@ -102,8 +107,7 @@ public class EventUtils {
 
         var loginRequest = fileUtils.readResourceFile("user/login-request-model-200.json");
 
-        return given()
-                .contentType(ContentType.JSON)
+        return given().contentType(ContentType.JSON)
                 .body(loginRequest.formatted(email, password))
                 .when().post("/api/v1/auth/login")
                 .then().statusCode(200)
@@ -111,13 +115,8 @@ public class EventUtils {
     }
 
     public void changeRole(String email, Role role) {
-
-        User user = userRepository
-                .findByEmail(email)
-                .orElseThrow();
-
+        var user = userRepository.findByEmail(email).orElseThrow();
         user.setRole(role);
-
         userRepository.save(user);
     }
 
@@ -137,7 +136,6 @@ public class EventUtils {
     }
 
     public String createOrganizerAndGetToken(String name, String email, String password) throws Exception {
-
         registerAndLogin(name, email, password);
         changeRole(email, Role.ORGANIZER);
 
@@ -152,12 +150,13 @@ public class EventUtils {
     }
 
     public Long createPublishedEvent(String token, int capacity) throws Exception {
-        var request = fileUtils.readResourceFile("event/event-request-200.json");
-
+        var request = fileUtils.readResourceFile("event/event-request-200.json").formatted(LocalDateTime.now().plusDays(1));
+        var image = fileUtils.getResourceAsFile("event/event-image/image-test.png");
         request = request.replace("\"capacity\": 100", "\"capacity\": " + capacity);
 
         Long eventId = given().header("Authorization", "Bearer " + token)
-                .contentType(ContentType.JSON).body(request)
+                .multiPart("event", request, "application/json")
+                .multiPart("image", image, "image/png")
                 .when().post("/api/v1/events")
                 .then().statusCode(201)
                 .extract().jsonPath().getLong("id");

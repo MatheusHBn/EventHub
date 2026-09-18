@@ -3,16 +3,22 @@ package com.example.eventhub.api;
 import com.example.eventhub.commons.EventUtils;
 import com.example.eventhub.commons.FileUtils;
 import com.example.eventhub.domain.Role;
+import com.example.eventhub.service.S3Service;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 import org.junit.jupiter.api.*;
+import org.mockito.Mock;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.test.context.ActiveProfiles;
 
+import java.time.LocalDateTime;
+
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.*;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.when;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -42,14 +48,14 @@ class EventControllerIT {
 
         eventUtils.registerAndLogin("ORGANIZER", email, password);
         eventUtils.changeRole(email, Role.ORGANIZER);
-
         String token = eventUtils.login(email, password);
 
-        var request = fileUtils.readResourceFile("event/event-request-200.json");
+        var request = fileUtils.readResourceFile("event/event-request-200.json").formatted(LocalDateTime.now().plusDays(1));
+        var image = fileUtils.getResourceAsFile("event/event-image/image-test.png");
 
-        given()
-                .header("Authorization", "Bearer " + token)
-                .contentType(ContentType.JSON).body(request)
+        given().header("Authorization", "Bearer " + token)
+                .multiPart("event", request, "application/json")
+                .multiPart("image", image, "image/png")
                 .when().post("/api/v1/events")
                 .then().statusCode(201)
                 .body("title", equalTo("Evento-importante 2"))
@@ -62,26 +68,27 @@ class EventControllerIT {
     @DisplayName("POST /api/v1/events Should return 403 Forbidden when user is a normal user")
     void create_returns403_WhenUserIsNotOrganizer() throws Exception {
         String token = eventUtils.registerAndLogin("Normal User", "user-event@test.com", "12345678");
-        var request = fileUtils.readResourceFile("event/event-request-200.json");
+        var request = fileUtils.readResourceFile("event/event-request-200.json").formatted(LocalDateTime.now().plusDays(1));
+        var image = fileUtils.getResourceAsFile("event/event-image/image-test.png");
 
-        given()
-                .header("Authorization", "Bearer " + token)
-                .contentType(ContentType.JSON)
-                .body(request)
-                .when()
-                .post("/api/v1/events")
-                .then()
-                .log().all()
-                .statusCode(403);
+        given().header("Authorization", "Bearer " + token)
+                .multiPart("event", request, "application/json")
+                .multiPart("image", image, "image/png")
+                .contentType(ContentType.MULTIPART)
+                .when().post("/api/v1/events")
+                .then().statusCode(403);
     }
 
     @Test
     @Order(3)
     @DisplayName("POST /api/v1/events Should return 401 Unauthorized when request is unauthenticated")
     void create_returns401_WhenUnauthenticated() throws Exception {
-        var request = fileUtils.readResourceFile("event/event-request-200.json");
+        var request = fileUtils.readResourceFile("event/event-request-200.json").formatted(LocalDateTime.now().plusDays(1));
+        var image = fileUtils.getResourceAsFile("event/event-image/image-test.png");
 
-        given().contentType(ContentType.JSON).body(request)
+        given().multiPart("event", request, "application/json")
+                .multiPart("image", image, "image/png")
+                .contentType(ContentType.MULTIPART)
                 .when().post("/api/v1/events")
                 .then().statusCode(401);
     }
@@ -95,18 +102,19 @@ class EventControllerIT {
 
         eventUtils.registerAndLogin("Organizer", email, password);
         eventUtils.changeRole(email, Role.ORGANIZER);
-
         String token = eventUtils.login(email, password);
 
-        var request = fileUtils.readResourceFile("event/event-request-200.json");
+        var request = fileUtils.readResourceFile("event/event-request-200.json").formatted(LocalDateTime.now().plusDays(1));
+        var image = fileUtils.getResourceAsFile("event/event-image/image-test.png");
 
         given().header("Authorization", "Bearer " + token)
-                .contentType(ContentType.JSON).body(request)
+                .multiPart("event", request, "application/json")
+                .multiPart("image", image, "image/png")
+                .contentType(ContentType.MULTIPART)
                 .when().post("/api/v1/events")
                 .then().statusCode(201);
 
-        given().when().get("/api/v1/events")
-                .then().statusCode(200).body("$", not(empty()));
+        given().when().get("/api/v1/events").then().statusCode(200).body("$", not(empty()));
     }
 
     @Test
@@ -118,13 +126,16 @@ class EventControllerIT {
 
         eventUtils.registerAndLogin("Organizer", email, password);
         eventUtils.changeRole(email, Role.ORGANIZER);
-
         String token = eventUtils.login(email, password);
-        var request = fileUtils.readResourceFile("event/event-request-200.json");
+
+        var request = fileUtils.readResourceFile("event/event-request-200.json").formatted(LocalDateTime.now().plusDays(1));
+        var image = fileUtils.getResourceAsFile("event/event-image/image-test.png");
 
         Long eventId = given()
                 .header("Authorization", "Bearer " + token)
-                .contentType(ContentType.JSON).body(request)
+                .multiPart("event", request, "application/json")
+                .multiPart("image", image, "image/png")
+                .contentType(ContentType.MULTIPART)
                 .when().post("/api/v1/events")
                 .then().statusCode(201).extract().jsonPath().getLong("id");
 
@@ -150,22 +161,21 @@ class EventControllerIT {
         String password = "12345678";
 
         eventUtils.registerAndLogin("Organizer", email, password);
-
         eventUtils.changeRole(email, Role.ORGANIZER);
-
         String token = eventUtils.login(email, password);
 
-        var request = fileUtils.readResourceFile("event/event-request-200.json");
+        var request = fileUtils.readResourceFile("event/event-request-200.json").formatted(LocalDateTime.now().plusDays(1));
+        var image = fileUtils.getResourceAsFile("event/event-image/image-test.png");
 
         Long eventId = given().header("Authorization", "Bearer " + token)
-                .contentType(ContentType.JSON)
-                .body(request)
+                .multiPart("event", request, "application/json")
+                .multiPart("image", image, "image/png")
+                .contentType(ContentType.MULTIPART)
                 .when().post("/api/v1/events")
                 .then().statusCode(201)
                 .extract().jsonPath().getLong("id");
 
-        given()
-                .header("Authorization", "Bearer " + token)
+        given().header("Authorization", "Bearer " + token)
                 .when().patch("/api/v1/events/" + eventId + "/publish")
                 .then().statusCode(200)
                 .body("id", equalTo(eventId.intValue()))
@@ -184,23 +194,23 @@ class EventControllerIT {
 
         eventUtils.registerAndLogin("Organizer A", emailA, passwordA);
         eventUtils.changeRole(emailA, Role.ORGANIZER);
-
         String tokenA = eventUtils.login(emailA, passwordA);
 
-        var request = fileUtils.readResourceFile("event/event-request-200.json");
+        var request = fileUtils.readResourceFile("event/event-request-200.json").formatted(LocalDateTime.now().plusDays(1));
+        var image = fileUtils.getResourceAsFile("event/event-image/image-test.png");
 
         long eventId = given().header("Authorization", "Bearer " + tokenA)
-                .contentType(ContentType.JSON)
-                .body(request).when().post("/api/v1/events")
+                .multiPart("event", request, "application/json")
+                .multiPart("image", image, "image/png")
+                .contentType(ContentType.MULTIPART)
+                .when().post("/api/v1/events")
                 .then().statusCode(201)
                 .extract().jsonPath().getLong("id");
 
 
         eventUtils.registerAndLogin("Organizer B", emailB, passwordB);
         eventUtils.changeRole(emailB, Role.ORGANIZER);
-
         String tokenB = eventUtils.login(emailB, passwordB);
-
 
         given().header("Authorization", "Bearer " + tokenB)
                 .when().patch("/api/v1/events/" + eventId + "/publish")
@@ -209,7 +219,7 @@ class EventControllerIT {
 
     @Test
     @Order(9)
-    @DisplayName("PATCH /api/v1/events/{id}/publish  Should allow admin to publish another organizer's event")
+    @DisplayName("PATCH /api/v1/events/{id}/publish Should allow admin to publish another organizer's event")
     void publish_returns200_WhenUserIsAdmin() throws Exception {
 
         String organizerEmail = "organizer-admin-test@test.com";
@@ -220,21 +230,22 @@ class EventControllerIT {
 
         eventUtils.registerAndLogin("Organizer", organizerEmail, organizerPassword);
         eventUtils.changeRole(organizerEmail, Role.ORGANIZER);
-
         String organizerToken = eventUtils.login(organizerEmail, organizerPassword);
-        var request = fileUtils.readResourceFile("event/event-request-200.json");
+
+        var request = fileUtils.readResourceFile("event/event-request-200.json").formatted(LocalDateTime.now().plusDays(1));
+        var image = fileUtils.getResourceAsFile("event/event-image/image-test.png");
 
         long eventId = given().header("Authorization", "Bearer " + organizerToken)
-                .contentType(ContentType.JSON).body(request)
+                .multiPart("event", request, "application/json")
+                .multiPart("image", image, "image/png")
+                .contentType(ContentType.MULTIPART)
                 .when().post("/api/v1/events")
                 .then().statusCode(201)
                 .extract().jsonPath().getLong("id");
 
         eventUtils.registerAndLogin("Admin", adminEmail, adminPassword);
         eventUtils.changeRole(adminEmail, Role.ADMIN);
-
         String adminToken = eventUtils.login(adminEmail, adminPassword);
-
 
         given().header("Authorization", "Bearer " + adminToken)
                 .when().patch("/api/v1/events/" + eventId + "/publish")
@@ -250,25 +261,25 @@ class EventControllerIT {
         String password = "12345678";
 
         eventUtils.registerAndLogin("Organizer", email, password);
-
         eventUtils.changeRole(email, Role.ORGANIZER);
-
         String token = eventUtils.login(email, password);
 
-        var createRequest = fileUtils.readResourceFile("event/event-request-200.json");
+        var request = fileUtils.readResourceFile("event/event-request-200.json").formatted(LocalDateTime.now().plusDays(1));
+        var image = fileUtils.getResourceAsFile("event/event-image/image-test.png");
 
         Long eventId = given()
                 .header("Authorization", "Bearer " + token)
-                .contentType(ContentType.JSON).body(createRequest)
+                .multiPart("event", request, "application/json")
+                .multiPart("image", image, "image/png")
                 .when().post("/api/v1/events")
                 .then().statusCode(201)
                 .extract().jsonPath().getLong("id");
 
-        var updateRequest = fileUtils.readResourceFile("event/event-update-request-200.json");
+        var updateRequest = fileUtils.readResourceFile("event/event-update-request-200.json").formatted(LocalDateTime.now().plusDays(1));
 
-        given()
-                .header("Authorization", "Bearer " + token)
-                .contentType(ContentType.JSON).body(updateRequest)
+        given().header("Authorization", "Bearer " + token)
+                .multiPart("event", updateRequest, "application/json")
+                .multiPart("image", image, "image/png")
                 .when().put("/api/v1/events/" + eventId)
                 .then().statusCode(200)
                 .body("id", equalTo(eventId.intValue()))
@@ -289,23 +300,26 @@ class EventControllerIT {
         eventUtils.changeRole(emailA, Role.ORGANIZER);
         String tokenA = eventUtils.login(emailA, password);
 
-        var createRequest = fileUtils.readResourceFile("event/event-request-200.json");
+        var request = fileUtils.readResourceFile("event/event-request-200.json").formatted(LocalDateTime.now().plusDays(1));
+        var image = fileUtils.getResourceAsFile("event/event-image/image-test.png");
 
         long eventId = given().header("Authorization", "Bearer " + tokenA)
-                .contentType(ContentType.JSON).body(createRequest)
+                .multiPart("event", request, "application/json")
+                .multiPart("image", image, "image/png")
+                .contentType(ContentType.MULTIPART)
                 .when().post("/api/v1/events")
                 .then().statusCode(201)
                 .extract().jsonPath().getLong("id");
 
         eventUtils.registerAndLogin("Organizer B", emailB, password);
-
         eventUtils.changeRole(emailB, Role.ORGANIZER);
         String tokenB = eventUtils.login(emailB, password);
 
-        var updateRequest = fileUtils.readResourceFile("event/event-update-request-200.json");
+        var updateRequest = fileUtils.readResourceFile("event/event-update-request-200.json").formatted(LocalDateTime.now().plusDays(1));
 
         given().header("Authorization", "Bearer " + tokenB)
-                .contentType(ContentType.JSON).body(updateRequest)
+                .multiPart("event", updateRequest, "application/json")
+                .multiPart("image", image, "image/png").body(updateRequest)
                 .when().put("/api/v1/events/" + eventId)
                 .then().statusCode(403);
     }
@@ -319,29 +333,29 @@ class EventControllerIT {
         String password = "12345678";
 
         eventUtils.registerAndLogin("Organizer", organizerEmail, password);
-
         eventUtils.changeRole(organizerEmail, Role.ORGANIZER);
         String organizerToken = eventUtils.login(organizerEmail, password);
 
-        var createRequest = fileUtils.readResourceFile("event/event-request-200.json");
+        var request = fileUtils.readResourceFile("event/event-request-200.json").formatted(LocalDateTime.now().plusDays(1));
+        var image = fileUtils.getResourceAsFile("event/event-image/image-test.png");
 
         long eventId = given().header("Authorization", "Bearer " + organizerToken)
-                .contentType(ContentType.JSON).body(createRequest)
+                .multiPart("event", request, "application/json")
+                .multiPart("image", image, "image/png")
+                .contentType(ContentType.MULTIPART)
                 .when().post("/api/v1/events")
                 .then().statusCode(201)
-                .extract()
-                .jsonPath()
-                .getLong("id");
-
+                .extract().jsonPath().getLong("id");
 
         eventUtils.registerAndLogin("Admin", adminEmail, password);
         eventUtils.changeRole(adminEmail, Role.ADMIN);
-
         String adminToken = eventUtils.login(adminEmail, password);
-        var updateRequest = fileUtils.readResourceFile("event/event-update-request-200.json");
+
+        var updateRequest = fileUtils.readResourceFile("event/event-update-request-200.json").formatted(LocalDateTime.now().plusDays(1));
 
         given().header("Authorization", "Bearer " + adminToken)
-                .contentType(ContentType.JSON)
+                .multiPart("event", updateRequest, "application/json")
+                .multiPart("image", image, "image/png").body(updateRequest)
                 .body(updateRequest).when().put("/api/v1/events/" + eventId)
                 .then().statusCode(200)
                 .body("title", equalTo("Evento atualizado"))
@@ -358,12 +372,15 @@ class EventControllerIT {
 
         eventUtils.registerAndLogin("Organizer", email, password);
         eventUtils.changeRole(email, Role.ORGANIZER);
-
         String token = eventUtils.login(email, password);
-        var createRequest = fileUtils.readResourceFile("event/event-request-200.json");
+
+        var request = fileUtils.readResourceFile("event/event-request-200.json").formatted(LocalDateTime.now().plusDays(1));
+        var image = fileUtils.getResourceAsFile("event/event-image/image-test.png");
 
         long eventId = given().header("Authorization", "Bearer " + token)
-                .contentType(ContentType.JSON).body(createRequest)
+                .multiPart("event", request, "application/json")
+                .multiPart("image", image, "image/png")
+                .contentType(ContentType.MULTIPART)
                 .when().post("/api/v1/events")
                 .then().statusCode(201)
                 .extract().jsonPath().getLong("id");
@@ -383,19 +400,21 @@ class EventControllerIT {
 
         eventUtils.registerAndLogin("Organizer A", emailA, password);
         eventUtils.changeRole(emailA, Role.ORGANIZER);
-
         String tokenA = eventUtils.login(emailA, password);
-        var createRequest = fileUtils.readResourceFile("event/event-request-200.json");
+
+        var request = fileUtils.readResourceFile("event/event-request-200.json").formatted(LocalDateTime.now().plusDays(1));
+        var image = fileUtils.getResourceAsFile("event/event-image/image-test.png");
 
         long eventId = given().header("Authorization", "Bearer " + tokenA)
-                .contentType(ContentType.JSON).body(createRequest)
+                .multiPart("event", request, "application/json")
+                .multiPart("image", image, "image/png")
+                .contentType(ContentType.MULTIPART)
                 .when().post("/api/v1/events")
                 .then().statusCode(201)
                 .extract().jsonPath().getLong("id");
 
         eventUtils.registerAndLogin("Organizer B", emailB, password);
         eventUtils.changeRole(emailB, Role.ORGANIZER);
-
         String tokenB = eventUtils.login(emailB, password);
 
         given().header("Authorization", "Bearer " + tokenB)
@@ -413,19 +432,21 @@ class EventControllerIT {
 
         eventUtils.registerAndLogin("Organizer", organizerEmail, password);
         eventUtils.changeRole(organizerEmail, Role.ORGANIZER);
-
         String organizerToken = eventUtils.login(organizerEmail, password);
-        var createRequest = fileUtils.readResourceFile("event/event-request-200.json");
+
+        var request = fileUtils.readResourceFile("event/event-request-200.json").formatted(LocalDateTime.now().plusDays(1));
+        var image = fileUtils.getResourceAsFile("event/event-image/image-test.png");
 
         long eventId = given().header("Authorization", "Bearer " + organizerToken)
-                .contentType(ContentType.JSON).body(createRequest)
+                .multiPart("event", request, "application/json")
+                .multiPart("image", image, "image/png")
+                .contentType(ContentType.MULTIPART)
                 .when().post("/api/v1/events")
                 .then().statusCode(201)
                 .extract().jsonPath().getLong("id");
 
         eventUtils.registerAndLogin("Admin", adminEmail, password);
         eventUtils.changeRole(adminEmail, Role.ADMIN);
-
         String adminToken = eventUtils.login(adminEmail, password);
 
         given().header("Authorization", "Bearer " + adminToken).when()

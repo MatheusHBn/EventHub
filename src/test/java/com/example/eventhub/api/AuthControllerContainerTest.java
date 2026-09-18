@@ -53,14 +53,11 @@ class AuthControllerContainerTest {
     void login_returns200_WhenCredentialsAreValid() throws Exception {
         var request = fileUtils.readResourceFile("auth/auth-request-201.json");
 
-        given().contentType(ContentType.JSON)
-                .body(request).when()
-                .post("/api/v1/auth/register");
+        given().contentType(ContentType.JSON).body(request).when().post("/api/v1/auth/register");
 
         var loginRequest = fileUtils.readResourceFile("auth/login-request-200.json");
 
-        given()
-                .contentType(ContentType.JSON)
+        given().contentType(ContentType.JSON)
                 .body(loginRequest).when()
                 .post("/api/v1/auth/login")
                 .then().statusCode(200)
@@ -73,14 +70,11 @@ class AuthControllerContainerTest {
     void login_returns401_WhenPasswordIsInvalid() throws Exception {
         var request = fileUtils.readResourceFile("auth/auth-request-password-invalid-400.json");
 
-        given().contentType(ContentType.JSON)
-                .body(request).when()
-                .post("/api/v1/auth/register");
+        given().contentType(ContentType.JSON).body(request).when().post("/api/v1/auth/register");
 
         var invalidLogin = fileUtils.readResourceFile("auth/login-request-400.json");
 
-        given()
-                .contentType(ContentType.JSON)
+        given().contentType(ContentType.JSON)
                 .body(invalidLogin).when()
                 .post("/api/v1/auth/login")
                 .then()
@@ -96,8 +90,7 @@ class AuthControllerContainerTest {
         given().contentType(ContentType.JSON)
                 .body(request).when()
                 .post("/api/v1/auth/register")
-                .then()
-                .statusCode(201);
+                .then().statusCode(201);
 
         given().contentType(ContentType.JSON)
                 .body(request).when()
@@ -111,8 +104,7 @@ class AuthControllerContainerTest {
     void register_returns400_WhenDataIsInvalid() throws Exception {
         var request = fileUtils.readResourceFile("auth/auth-request-invalid-fields-400.json");
 
-        given()
-                .contentType(ContentType.JSON)
+        given().contentType(ContentType.JSON)
                 .body(request).when()
                 .post("/api/v1/auth/register")
                 .then().statusCode(400);

@@ -39,4 +39,6 @@ public class Event {
     @ManyToOne
     @JoinColumn(name = "organizer_id", nullable = false)
     private User organizer;
+    @Column
+    private String imageUrl;
 }
